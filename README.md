@@ -1,193 +1,194 @@
 # WDM-Ex.NO-6-INFORMATION-RETRIEVAL-USING-BOOLEAN-MODE
-Aim:
-To find the ranking of web documents using Boolean Model.
-Program:
 
+## Aim
+
+To find the ranking of web documents using the Boolean Model.
+
+## Program
+
+### 1. Importing the Libraries
+
+```python
 import pandas
-# module to read the contents of the file from a csv file
-
 from contextlib import redirect_stdout
-# module to redirect the output to a text file
 
 terms = []
-# list to store the terms present in the documents
-
 keys = []
-# list to store the names of the documents
-
 vec_Dic = {}
-# dictionary to store the name of the document and the boolean vector as list
-
 dicti = {}
-# dictionary to store the name of the document and the terms present in it as a # vector
-
 dummy_List = []
-# list for performing some operations and clearing them
+```
 
+### 2. Filtering Documents
 
+```python
 def filter(documents, rows, cols):
-'''function to read and separate the name of the documents and the terms present in it to a separate list from the data frame and also create a
-dictionary which has the name of the document as key and the terms present in it as the list of strings which is the value of the key'''
+    """Extract document names and terms from the dataset."""
 
-for i in range(rows): for j in range(cols):
-# traversal through the data frame
+    for i in range(rows):
+        for j in range(cols):
+            if j == 0:
+                keys.append(documents.loc[i].iat[j])
+            else:
+                dummy_List.append(documents.loc[i].iat[j])
 
-if(j == 0):
-# first column has the name of the document in the csv file keys.append(documents.loc[i].iat[j])
-else:
-dummy_List.append(documents.loc[i].iat[j])
-# dummy list to update the terms in the dictionary
+                if documents.loc[i].iat[j] not in terms:
+                    terms.append(documents.loc[i].iat[j])
 
-if documents.loc[i].iat[j] not in terms:
-# add the terms to the list if it is not present else continue terms.append(documents.loc[i].iat[j])
- 
-copy = dummy_List.copy()
-# copying the dummy list to a different list dicti.update({documents.loc[i].iat[0]: copy}) # adding the key value pair to a dictionary dummy_List.clear()
-# clearing the dummy list
+        copy = dummy_List.copy()
+        dicti.update({documents.loc[i].iat[0]: copy})
+        dummy_List.clear()
+```
 
+### 3. Boolean Representation of Documents
 
+```python
 def bool_Representation(dicti, rows, cols):
-'''In this function we get a boolean representation of the terms present in the documents in the form of lists, later we create a dictionary which contains the name of the documents as key and value as the list of boolean values representing the terms present in the document'''
+    """Create Boolean vectors for each document."""
 
-terms.sort()
-# we sort the elements in the alphabetical order for the convience, the order # of the term does not make any difference
+    terms.sort()
 
-for i in (dicti):
-# for every document in the dictionary we check for each string present in # the list
+    for i in dicti:
+        for j in terms:
+            if j in dicti[i]:
+                dummy_List.append(1)
+            else:
+                dummy_List.append(0)
 
-for j in terms:
-# if the string is present in the list we append 1 else we append 0
+        copy = dummy_List.copy()
+        vec_Dic.update({i: copy})
+        dummy_List.clear()
+```
 
-if j in dicti[i]: dummy_List.append(1)
-else:
-dummy_List.append(0)
-# appending 1 or 0 for obtaining the boolean representation
+### 4. Query Vector
 
-copy = dummy_List.copy()
-# copying the dummy list to a different list
-
-vec_Dic.update({i: copy})
-# adding the key value pair to a dictionary
-
-dummy_List.clear()
-# clearing the dummy list
-
-
+```python
 def query_Vector(query):
-'''In this function we represent the query in the form of boolean vector'''
+    """Represent the user query as a Boolean vector."""
 
-qvect = []
-# query vector which is returned at the end of the function
+    qvect = []
 
-for i in terms:
-# if the word present in the list of terms is also present in the query # then append 1 else append 0
+    for i in terms:
+        if i in query:
+            qvect.append(1)
+        else:
+            qvect.append(0)
 
-if i in query: qvect.append(1)
- 
-else:
-qvect.append(0)
+    return qvect
+```
 
-return qvect
-# return the query vector which is obtained in the boolean form
+### 5. Ranking the Documents
 
-
+```python
 def prediction(q_Vect):
-'''In this function we make the prediction regarding which document is related to the given query by performing the boolean operations'''
+    """Rank documents according to Boolean vector similarity."""
 
-dictionary = {} listi = []
-count = 0
-# initialisation of the dictionary , list and a variable which is further # required for performing the computation
+    dictionary = {}
+    listi = []
+    count = 0
 
-term_Len = len(terms)
-# number of terms present in the term list
+    term_Len = len(terms)
 
-for i in vec_Dic:
-# for every document in the dictionary containing the terms present in it # the form of boolean vector
+    for i in vec_Dic:
+        for t in range(term_Len):
+            if q_Vect[t] == vec_Dic[i][t]:
+                count += 1
 
-for t in range(term_Len): if(q_Vect[t] == vec_Dic[i][t]):
-# if the words present in the query is also present in the
-# document or if the words present in the query is also absent in # the document
+        dictionary.update({i: count})
+        count = 0
 
-count += 1
-# increase the value of count variable by one
-# the condition in which words present in document and absent in #query , present in query and absent in document is not considered
+    for i in dictionary:
+        listi.append(dictionary[i])
 
-dictionary.update({i: count})
-# dictionary updation here the name of the document is the key and the # count variable computed earlier is the value
+    listi = sorted(listi, reverse=True)
 
-count = 0
-# reinitialisaion of count variable to 0
+    ans = ""
 
-for i in dictionary: listi.append(dictionary[i])
-# here we append the count value to list
+    with open("output.txt", "w") as f:
+        with redirect_stdout(f):
+            print("Ranking of the documents")
 
-listi = sorted(listi, reverse=True)
-# we sort the list in the descending order which is needed to rank the #documents according to the relevance
+            for count, i in enumerate(listi):
+                key = check(dictionary, i)
 
-ans = ' '
-# variable to store the name of the document which is most relevant with open('output.txt', 'w') as f:
- 
-with redirect_stdout(f):
-# to redirect the output to a text file print("ranking of the documents")
-for count, i in enumerate(listi): key = check(dictionary, i)
-# Function call to get the key when the value is known if count == 0:
-ans = key
-# to store the name of the document which is most relevant
+                if count == 0:
+                    ans = key
 
-print(key, "rank is", count+1)
-# print the name of the document along with its rank
+                print(key, "rank is", count + 1)
+                dictionary.pop(key)
 
-dictionary.pop(key)
-# remove the key from the dictionary after printing
+            print(ans, "is the most relevant document for the given query")
+```
 
-print(ans, "is the most relevant document for the given query") # to print the name of the document which is most relevant
+### 6. Checking Document Rankings
 
-
+```python
 def check(dictionary, val):
-'''Function to return the key when the value is known'''
+    """Return the document name for a given ranking value."""
 
-for key, value in dictionary.items(): if(val == value):
-# if the given value is same as the value present in the dictionary # return the key
+    for key, value in dictionary.items():
+        if val == value:
+            return key
+```
 
-return key
+### 7. Main Function
 
-
+```python
 def main():
-documents = pandas.read_csv('/content/sample_data/documents.csv',encoding= 'unicode_escape') # to read the data from the csv file as a dataframe
+    documents = pandas.read_csv(
+        "/content/sample_data/documents.csv",
+        encoding="unicode_escape"
+    )
 
-rows = len(documents)
-# to get the number of rows
+    rows = len(documents)
+    cols = len(documents.columns)
 
-cols = len(documents.columns) # to get the number of columns
+    filter(documents, rows, cols)
 
-filter(documents, rows, cols)
-# function call to read and separate the name of the documents and the terms # present in it to a separate list from the data frame and also create a
-# dictionary which has the name of the document as key and the terms present in # it as the list of strings which is the value of the key
+    bool_Representation(dicti, rows, cols)
 
-bool_Representation(dicti, rows, cols)
-# In this function we get a boolean representation of the terms present in the # documents in the form of lists, later we create a dictionary which contains # the name of the documents as key and value as the list of boolean values #representing the terms present in the document
- 
-print("Enter query") query = input()
-# to get the query input from the user, the below input is given for obtaining # the output as in output.txt file
-# hockey is a national sport
+    print("Enter query")
+    query = input()
 
-query = query.split(' ')
-# splitting the query as a list of strings
+    query = query.split(" ")
 
-q_Vect = query_Vector(query)
-# function call to represent the query in the form of boolean vector
+    q_Vect = query_Vector(query)
 
-prediction(q_Vect)
-# Function call to make the prediction regarding which document is related to # the given query by performing the boolean operations
+    prediction(q_Vect)
 
-main()
 
-documents.csv
-documents , term1, term2, term3 document1, ice cream, mango, litchi document2 , hockey, cricket, sport document3, litchi, mango, chocolate document4 , nice, good, cute
+if __name__ == "__main__":
+    main()
+```
 
-**Output**
-<img width="1080" height="523" alt="image" src="https://github.com/user-attachments/assets/1fb25b95-70f0-44fe-9e40-240d130247e5" />
+## Dataset
 
-**RESULT:**
-Thus, the python program for Information retrieval using Boolean model has been implemented successfully.
+Create a file named `documents.csv` with the following content:
 
+```csv
+documents,term1,term2,term3
+document1,ice cream,mango,litchi
+document2,hockey,cricket,sport
+document3,litchi,mango,chocolate
+document4,nice,good,cute
+```
+
+## Output
+
+Enter a query when prompted by the program.
+
+Example query:
+
+```text
+hockey is a national sport
+```
+
+The program writes the document ranking to `output.txt`.
+
+Insert the output screenshot below.
+
+![Output](https://github.com/user-attachments/assets/1fb25b95-70f0-44fe-9e40-240d130247e5)
+
+## Result
+
+Thus, the Python program for information retrieval using the Boolean Model was implemented successfully.
